@@ -9,7 +9,10 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.hootegor.copilot.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
+        <toolWindow
+                anchor="right"
+                id="Copilot"
+                factoryClass="com.github.hootegor.copilot.toolWindow.MyToolWindowFactory"/>
         <postStartupActivity implementation="com.github.hootegor.copilot.startup.MyProjectActivity" />
     </extensions>
 </idea-plugin>

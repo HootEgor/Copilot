@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
     alias(libs.plugins.qodana) // Gradle Qodana Plugin
     alias(libs.plugins.kover) // Gradle Kover Plugin
+    id("org.openjfx.javafxplugin") version "0.0.14"
 }
 
 group = providers.gradleProperty("pluginGroup").get()
@@ -19,6 +20,10 @@ kotlin {
     jvmToolchain(21)
 }
 
+javafx {
+    version = "21"
+    modules = listOf("javafx.controls", "javafx.web")
+}
 // Configure project's dependencies
 repositories {
     mavenCentral()
@@ -27,12 +32,21 @@ repositories {
     intellijPlatform {
         defaultRepositories()
     }
+
+    google()
 }
 
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.opentest4j)
+
+    implementation(libs.json)
+    implementation(libs.flexmark)
+    implementation(libs.controls)
+    implementation(libs.web)
+    implementation(libs.swing)
+
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
@@ -132,6 +146,21 @@ tasks {
     publishPlugin {
         dependsOn(patchChangelog)
     }
+}
+
+tasks.withType<JavaExec>().configureEach {
+    val javafxLibPath = configurations.runtimeClasspath.get().asPath
+    jvmArgs = listOf(
+        "--module-path", javafxLibPath,
+        "--add-modules", "javafx.controls,javafx.web"
+    )
+}
+
+tasks.withType<ProcessResources> {
+    from("src/main/resources") {
+        include("local.properties")
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 intellijPlatformTesting {
