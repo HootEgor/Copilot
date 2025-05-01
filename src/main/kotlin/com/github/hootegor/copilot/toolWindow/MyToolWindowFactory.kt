@@ -61,6 +61,9 @@ class MyToolWindowFactory : ToolWindowFactory {
             val userMessage = inputField.text.trim()
             if (userMessage.isEmpty()) return
             inputField.text = ""
+            if (currentProjectContext == null) {
+                currentProjectContext = FileEditorManager.getInstance(project).selectedEditor?.file
+            }
             sendMessage(userMessage, browser, loadingLabel, htmlBuilder)
         }
 
