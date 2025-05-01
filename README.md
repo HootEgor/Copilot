@@ -17,11 +17,35 @@
 - [ ] Click the <kbd>Watch</kbd> button on the top of the [IntelliJ Platform Plugin Template][template] to be notified about releases containing new features and fixes.
 
 <!-- Plugin description -->
-This Fancy IntelliJ Platform Plugin is going to be your implementation of the brilliant ideas that you have.
+# 🔧 Copilot
 
-This specific section is a source for the [plugin.xml](/src/main/resources/META-INF/plugin.xml) file which will be extracted by the [Gradle](/build.gradle.kts) during the build process.
+Copilot is a powerful JetBrains IDE plugin designed to streamline your development workflow. Whether you're working in IntelliJ IDEA, Android Studio, GoLand, or other JetBrains IDEs, this plugin enhances productivity with the following features:
 
-To keep everything working, do not remove `<!-- ... -->` sections. 
+### ✨ Features
+
+- ✅ Smart integration with OpenAI API
+- 📦 Minimal configuration, works out of the box
+- 🔒 Securely reads secrets or environment variables (e.g., `local.properties`)
+- 💡 JavaFX UI components embedded directly into the IDE
+
+### 🔄 Compatibility
+
+Supports the following IDEs:
+- IntelliJ IDEA (Community and Ultimate)
+- Android Studio
+- GoLand
+- PyCharm
+- WebStorm (if applicable)
+
+### 📁 Setup
+
+1. Install via **JetBrains Marketplace** or manual `.zip` deployment.
+2. (Optional) Create a `local.properties` file in `src/main/resources` to provide custom values.
+
+### 🧪 Status
+
+This plugin is under active development. Contributions, suggestions, and bug reports are welcome!
+
 <!-- Plugin description end -->
 
 ## Installation

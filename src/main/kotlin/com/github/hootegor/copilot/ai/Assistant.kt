@@ -1,6 +1,7 @@
 package com.github.hootegor.copilot.ai
 
 import com.intellij.openapi.vfs.VirtualFile
+import com.jetbrains.rd.generator.nova.PredefinedType
 import org.json.JSONObject
 import java.net.URI
 import java.net.http.HttpClient
@@ -35,7 +36,7 @@ class Assistant(private val apiKey: String, private val assistantId: String) {
         sendUserMessage(threadId, messageToSend) // 🔄 Send message first
         val runId = createRun(threadId)          // ✅ Create run only after message exists
         waitForRunCompletion(threadId, runId)
-        return fetchLastAssistantMessage(threadId)
+        return fetchLastAssistantMessage(threadId, runId)
     }
 
     private fun createNewThread(): String {
@@ -108,9 +109,9 @@ class Assistant(private val apiKey: String, private val assistantId: String) {
         }
     }
 
-    private fun fetchLastAssistantMessage(threadId: String): String {
+    private fun fetchLastAssistantMessage(threadId: String, runId: String): String {
         val request = HttpRequest.newBuilder()
-            .uri(URI.create("https://api.openai.com/v1/threads/$threadId/messages?order=desc"))
+            .uri(URI.create("https://api.openai.com/v1/threads/$threadId/messages?order=desc&run_id=$runId"))
             .header("Authorization", "Bearer $apiKey")
             .header("OpenAI-Beta", "assistants=v2")
             .build()
