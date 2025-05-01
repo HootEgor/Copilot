@@ -6,7 +6,7 @@ json = "20210307"
 flexmark = "0.64.8"
 javafx-controls = "21"
 javafx-web = "21"
-javafx-swing = "21"
+javafx-swing = "24.0.1"
 
 # plugins
 changelog = "2.2.1"
