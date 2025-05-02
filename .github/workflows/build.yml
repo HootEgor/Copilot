@@ -233,12 +233,25 @@ jobs:
       - name: Bump Plugin Version
         id: bump_version
         run: |
+          git pull origin main  # ensure up-to-date
+          
           VERSION=$(grep '^pluginVersion=' gradle.properties | cut -d'=' -f2)
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
           PATCH=$((PATCH + 1))
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-
+          
+          echo "🔢 Old version: $VERSION"
+          echo "🚀 New version: $NEW_VERSION"
+          
           sed -i "s/^pluginVersion=.*/pluginVersion=$NEW_VERSION/" gradle.properties
+          
+          git config user.name "GitHub Actions"
+          git config user.email "action@github.com"
+          
+          git add gradle.properties
+          git commit -m "Bump plugin version to $NEW_VERSION" || echo "No version change to commit"
+          git push origin HEAD || (echo "❌ Push failed. Merge conflict or permissions issue." && exit 1)
+          
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Commit bumped version
@@ -264,5 +277,6 @@ jobs:
             --draft \
             --title "v${{ steps.bump_version.outputs.version }}" \
             --notes "${{ needs.build.outputs.changelog }}"
+  
   
 
