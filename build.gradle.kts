@@ -148,6 +148,19 @@ tasks {
     }
 }
 
+tasks.register("bumpVersion") {
+    doLast {
+        val versionFile = file("gradle.properties")
+        val lines = versionFile.readLines().map {
+            if (it.startsWith("pluginVersion=")) {
+                val (major, minor, patch) = it.removePrefix("pluginVersion=").split(".").map(String::toInt)
+                "pluginVersion=$major.$minor.${patch + 1}"
+            } else it
+        }
+        versionFile.writeText(lines.joinToString("\n"))
+    }
+}
+
 tasks.withType<JavaExec>().configureEach {
     val javafxLibPath = configurations.runtimeClasspath.get().asPath
     jvmArgs = listOf(

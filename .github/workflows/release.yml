@@ -8,34 +8,39 @@ on:
     types: [prereleased, released]
 
 jobs:
-
-  # Prepare and publish the plugin to JetBrains Marketplace repository
   release:
     name: Publish Plugin
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
-    steps:
 
-      # Check out the current repository
+    steps:
       - name: Fetch Sources
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.release.tag_name }}
 
-      # Set up Java environment for the next steps
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          df -h
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: zulu
           java-version: 21
 
-      # Setup Gradle
-      - name: Setup Gradle
+      - name: Setup Gradle (with lighter caching)
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+          cache-excludes: |
+            **/transforms/**
+            **/ideaIC-*.zip
+            **/kotlin-compiler-embeddable-*.jar
 
-      # Set environment variables
       - name: Export Properties
         id: properties
         shell: bash
@@ -49,15 +54,12 @@ jobs:
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      # Update the Unreleased section with the current release note
       - name: Patch Changelog
         if: ${{ steps.properties.outputs.changelog != '' }}
         env:
           CHANGELOG: ${{ steps.properties.outputs.changelog }}
-        run: |
-          ./gradlew patchChangelog --release-note="$CHANGELOG"
+        run: ./gradlew patchChangelog --release-note="$CHANGELOG"
 
-      # Publish the plugin to JetBrains Marketplace
       - name: Publish Plugin
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
@@ -66,13 +68,11 @@ jobs:
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
         run: ./gradlew publishPlugin
 
-      # Upload artifact as a release asset
       - name: Upload Release Asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload ${{ github.event.release.tag_name }} ./build/distributions/*
 
-      # Create a pull request
       - name: Create Pull Request
         if: ${{ steps.properties.outputs.changelog != '' }}
         env:
@@ -91,11 +91,11 @@ jobs:
           
           gh label create "$LABEL" \
             --description "Pull requests with release changelog update" \
-            --force \
-            || true
+            --force || true
 
           gh pr create \
             --title "Changelog update - \`$VERSION\`" \
             --body "Current pull request contains patched \`CHANGELOG.md\` file for the \`$VERSION\` version." \
             --label "$LABEL" \
             --head $BRANCH
+
