@@ -1,7 +1,6 @@
 package com.github.hootegor.copilot.toolWindow
 
 import com.github.hootegor.copilot.ai.Assistant
-import com.github.hootegor.copilot.model.loadSecrets
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
@@ -26,10 +25,8 @@ class MyToolWindowFactory : ToolWindowFactory {
     private var currentProjectContext: VirtualFile? = null
 
     init {
-        // Load secrets from local.properties
-        val secrets = loadSecrets()
-        val openAiKey = secrets.getProperty("openai.key") ?: throw IllegalStateException("Missing OpenAI Key")
-        val assistantId = secrets.getProperty("assistant.id") ?: throw IllegalStateException("Missing Assistant ID")
+        val openAiKey = System.getenv("OPENAI_KEY") ?: throw IllegalStateException("Missing OpenAI Key in environment variables")
+        val assistantId = System.getenv("ASSISTANT_ID") ?: throw IllegalStateException("Missing OpenAI Key in environment variables")
         assistant = Assistant(openAiKey, assistantId)
     }
 

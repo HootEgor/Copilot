@@ -1,13 +1,7 @@
 package com.github.hootegor.copilot.completion
 
 
-import com.github.hootegor.copilot.ai.Assistant
-import com.github.hootegor.copilot.model.loadSecrets
-import com.intellij.codeInsight.completion.CompletionContributor
-import com.intellij.codeInsight.completion.CompletionParameters
-import com.intellij.codeInsight.completion.CompletionProvider
-import com.intellij.codeInsight.completion.CompletionResultSet
-import com.intellij.codeInsight.completion.CompletionType
+import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
@@ -17,7 +11,6 @@ import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
-import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
@@ -29,14 +22,11 @@ import java.awt.Graphics
 import java.awt.Rectangle
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
-import java.io.File
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import java.util.Properties
-import java.util.Timer
-import java.util.TimerTask
+import java.util.*
 
 class AICodeCompletionManager(private val project: Project) {
 
@@ -46,9 +36,7 @@ class AICodeCompletionManager(private val project: Project) {
     private var lastSuggestion: String? = null
 
     init {
-        // Load secrets from local.properties
-        val secrets = loadSecrets()
-        openAiKey = secrets.getProperty("openai.key") ?: throw IllegalStateException("Missing OpenAI Key")
+        openAiKey = System.getenv("OPENAI_KEY") ?: throw IllegalStateException("Missing OpenAI Key in environment variables")
     }
 
     fun start() {

@@ -30,6 +30,9 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    env:
+      OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+      ASSISTANT_ID: ${{ secrets.ASSISTANT_ID }}
     outputs:
       version: ${{ steps.properties.outputs.version }}
       changelog: ${{ steps.properties.outputs.changelog }}
@@ -251,3 +254,29 @@ jobs:
           ${{ needs.build.outputs.changelog }}
           EOM
           )"
+  release:
+    name: Semantic Release
+    needs: [build, test, inspectCode, verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required by semantic-release
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Semantic Release
+        run: npm install -g semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/github
+
+      - name: Run Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release
