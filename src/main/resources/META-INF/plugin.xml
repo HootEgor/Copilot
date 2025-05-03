@@ -15,4 +15,14 @@
                 factoryClass="com.github.hootegor.copilot.toolWindow.MyToolWindowFactory"/>
         <postStartupActivity implementation="com.github.hootegor.copilot.startup.MyProjectActivity" />
     </extensions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <notificationGroup
+                id="Copilot Notifications"
+                displayType="BALLOON"
+                isLogByDefault="false"
+                toolWindowId="Epilot"
+        />
+    </extensions>
+
 </idea-plugin>

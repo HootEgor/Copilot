@@ -1,5 +1,6 @@
 package com.github.hootegor.copilot.ai
 
+import com.github.hootegor.copilot.model.AssistantData
 import com.intellij.openapi.vfs.VirtualFile
 import com.jetbrains.rd.generator.nova.PredefinedType
 import org.json.JSONObject
@@ -9,12 +10,55 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.util.concurrent.ConcurrentHashMap
 
-class Assistant(private val apiKey: String, private val assistantId: String) {
+class Assistant() {
     private val client = HttpClient.newHttpClient()
     private val threads = ConcurrentHashMap<Long, String>() // Store thread IDs by chat ID
     private val fileNamesInContext = mutableSetOf<String>() // Store file names in context
+    private var apiKey: String? = null
+    private var assistantId: String? = null
+
+    fun setApiKey(key: String) {
+        apiKey = key
+    }
+
+    fun setAssistantId(id: String) {
+        assistantId = id
+    }
+
+    fun getAvailableAssistants(): List<AssistantData> {
+        if (apiKey == null) {
+            throw IllegalStateException("API Key not set.")
+        }
+
+        val request = HttpRequest.newBuilder()
+            .uri(URI.create("https://api.openai.com/v1/assistants?order=desc"))
+            .header("Authorization", "Bearer $apiKey")
+            .header("Content-Type", "application/json")
+            .header("OpenAI-Beta", "assistants=v2")
+            .build()
+
+        val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+        val json = JSONObject(response.body())
+        println("ResponseAssistants: $json")
+        val dataArray = json.getJSONArray("data")
+        return List(dataArray.length()) { i ->
+            val obj = dataArray.getJSONObject(i)
+            AssistantData(
+                id = obj.optString("id", null),
+                name = obj.optString("name", null),
+                description = obj.optString("description", null),
+                model = obj.optString("model", null),
+                instructions = obj.optString("instructions", null)
+            )
+        }
+    }
 
     fun handleAssistantFlow(chatId: Long, userMessage: String, projectContext: VirtualFile? = null): String {
+
+        if (apiKey == null || assistantId == null) {
+            throw IllegalStateException("API Key or Assistant ID not set.")
+        }
+
         val threadId = threads[chatId] ?: run {
             val newThreadId = createNewThread()
             threads[chatId] = newThreadId
