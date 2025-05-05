@@ -4,7 +4,7 @@ junit = "4.13.2"
 opentest4j = "1.3.0"
 json = "20210307"
 flexmark = "0.64.8"
-javafx-controls = "21"
+javafx-controls = "24.0.1"
 javafx-web = "21"
 javafx-swing = "21"
 
