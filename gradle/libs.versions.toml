@@ -2,7 +2,7 @@
 # libraries
 junit = "4.13.2"
 opentest4j = "1.3.0"
-json = "20210307"
+json = "20250107"
 flexmark = "0.64.8"
 javafx-controls = "21"
 javafx-web = "21"
