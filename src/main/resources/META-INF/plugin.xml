@@ -21,7 +21,7 @@
                 id="Copilot Notifications"
                 displayType="BALLOON"
                 isLogByDefault="false"
-                toolWindowId="Epilot"
+                toolWindowId="Copilot"
         />
     </extensions>
 

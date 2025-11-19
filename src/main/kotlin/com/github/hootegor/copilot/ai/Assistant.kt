@@ -55,14 +55,8 @@ class Assistant() {
 
     fun handleAssistantFlow(chatId: Long, userMessage: String, projectContext: VirtualFile? = null): String {
 
-        if (apiKey == null || assistantId == null) {
-            throw IllegalStateException("API Key or Assistant ID not set.")
-        }
-
-        val threadId = threads[chatId] ?: run {
-            val newThreadId = createNewThread()
-            threads[chatId] = newThreadId
-            newThreadId
+        if (apiKey == null) {
+            throw IllegalStateException("API Key not set.")
         }
 
         val fileName = projectContext?.name
@@ -77,11 +71,61 @@ class Assistant() {
 
         println("messageToSend: $messageToSend")
 
+        if (assistantId == null) {
+            throw IllegalStateException("Assistant ID not set.")
+        }
+
+        val threadId = threads[chatId] ?: run {
+            val newThreadId = createNewThread()
+            threads[chatId] = newThreadId
+            newThreadId
+        }
+
         sendUserMessage(threadId, messageToSend) // 🔄 Send message first
         val runId = createRun(threadId)          // ✅ Create run only after message exists
         waitForRunCompletion(threadId, runId)
         return fetchLastAssistantMessage(threadId, runId)
     }
+
+    fun getAnswerFromCompletion(
+        userMessage: String,
+        projectContext: VirtualFile? = null
+    ): String {
+        val prompt = buildString {
+            append(userMessage)
+            projectContext?.let {
+                append("\n\nContext: ${it.name}")
+            }
+        }
+
+        val requestBody = """
+        {
+            "model": "gpt-4o",
+            "messages": [
+                {"role": "system", "content": "Serve as a virtual assistant within an Integrated Development Environment (IDE) to assist developers during the software development process."},
+                {"role": "user", "content": ${JSONObject.quote(prompt)}}
+            ]
+        }
+    """.trimIndent()
+
+        val request = HttpRequest.newBuilder()
+            .uri(URI.create("https://api.openai.com/v1/chat/completions"))
+            .header("Authorization", "Bearer $apiKey")
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+            .build()
+
+        val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+        val json = JSONObject(response.body())
+
+        return json
+            .getJSONArray("choices")
+            .getJSONObject(0)
+            .getJSONObject("message")
+            .getString("content")
+    }
+
+
 
     private fun createNewThread(): String {
         val request = HttpRequest.newBuilder()

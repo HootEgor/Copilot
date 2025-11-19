@@ -19,7 +19,6 @@ import com.intellij.ui.components.JBPanel
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.content.ContentManagerEvent
 import com.intellij.ui.content.ContentManagerListener
-import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.util.ui.UIUtil
 import com.vladsch.flexmark.html.HtmlRenderer
 import com.vladsch.flexmark.parser.Parser
@@ -40,27 +39,52 @@ class MyToolWindowFactory : ToolWindowFactory {
     private var currentProjectContext: VirtualFile? = null
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val contentManager = toolWindow.contentManager
-        // Tab 1: Chat Interface
-        val chatPanel = createChatPanel(project)
+        try {
+            println("Copilot: Starting tool window creation...")
+            val contentManager = toolWindow.contentManager
 
-        // Tab 2: Configuration
-        val configPanel = createConfigPanel(project)
+            // Tab 1: Chat Interface
+            println("Copilot: Creating chat panel...")
+            val chatPanel = createChatPanel(project)
+            println("Copilot: Chat panel created successfully")
 
-        val chatContent = ContentFactory.getInstance().createContent(chatPanel, "Chat", false)
-        val configContent = ContentFactory.getInstance().createContent(configPanel, "Settings", false)
+            // Tab 2: Configuration
+            println("Copilot: Creating config panel...")
+            val configPanel = createConfigPanel(project)
+            println("Copilot: Config panel created successfully")
 
-        contentManager.addContent(chatContent)
-        contentManager.addContent(configContent)
+            val chatContent = ContentFactory.getInstance().createContent(chatPanel, "Chat", false)
+            val configContent = ContentFactory.getInstance().createContent(configPanel, "Settings", false)
 
-        checkKeyAndId(project)
-        contentManager.addContentManagerListener(object : ContentManagerListener {
-            override fun selectionChanged(event: ContentManagerEvent) {
-                if (event.content === chatContent && event.content.isSelected) {
-                    checkKeyAndId(project)
+            contentManager.addContent(chatContent)
+            contentManager.addContent(configContent)
+            println("Copilot: Content added to tool window successfully")
+
+            checkKeyAndId(project)
+            contentManager.addContentManagerListener(object : ContentManagerListener {
+                override fun selectionChanged(event: ContentManagerEvent) {
+                    if (event.content === chatContent && event.content.isSelected) {
+                        checkKeyAndId(project)
+                    }
                 }
-            }
-        })
+            })
+            println("Copilot: Tool window initialization complete")
+        } catch (e: Exception) {
+            println("Copilot ERROR during tool window creation: ${e.message}")
+            e.printStackTrace()
+
+            // Create a fallback error panel
+            val errorPanel = JPanel(BorderLayout())
+            val errorLabel = JLabel("<html><body style='padding:20px;'>" +
+                    "<h2>Copilot Tool Window Error</h2>" +
+                    "<p>Failed to initialize: ${e.message}</p>" +
+                    "<p>Check IDE logs (Help → Show Log in Explorer) for details.</p>" +
+                    "</body></html>")
+            errorPanel.add(errorLabel, BorderLayout.CENTER)
+
+            val errorContent = ContentFactory.getInstance().createContent(errorPanel, "Error", false)
+            toolWindow.contentManager.addContent(errorContent)
+        }
     }
 
     private fun checkKeyAndId(project: Project) {
@@ -68,11 +92,13 @@ class MyToolWindowFactory : ToolWindowFactory {
         val key = props.getValue("OPENAI_KEY")
         val id = props.getValue("ASSISTANT_ID")
 
-        if (key.isNullOrBlank() || id.isNullOrBlank()) {
+        if (key.isNullOrBlank()) {
             showNotification(project, "Please configure OpenAI Key and Assistant ID in the Settings tab.")
         } else {
             assistant.setApiKey(key)
-            assistant.setAssistantId(id)
+            if (!id.isNullOrBlank()) {
+                assistant.setAssistantId(id)
+            }
         }
     }
 
@@ -206,15 +232,52 @@ class MyToolWindowFactory : ToolWindowFactory {
     private fun createChatPanel(project: Project): JPanel {
         val panel = JBPanel<JBPanel<*>>(BorderLayout())
 
-        val browser = JBCefBrowser()
-        val browserComponent = browser.component
+        println("Copilot: Creating Swing-based chat panel...")
+
+        // Use JEditorPane instead of JBCefBrowser for better compatibility
+        val chatDisplay = JEditorPane().apply {
+            contentType = "text/html"
+            isEditable = false
+            background = UIUtil.getPanelBackground()
+
+            // Set up HTML rendering with better styling
+            val kit = editorKit as HTMLEditorKit
+            val doc = document as HTMLDocument
+            val css = """
+                body { font-family: sans-serif; padding: 10px; background-color: ${getColorHex(UIUtil.getPanelBackground())}; }
+                .user-message {
+                    margin-bottom: 15px;
+                    padding: 10px;
+                    background-color: #1e1e1e;
+                    color: white;
+                    border-radius: 10px;
+                }
+                .user-label { color: #4CAF50; font-weight: bold; }
+                .ai-message {
+                    margin-bottom: 15px;
+                    padding: 10px;
+                    background-color: #333;
+                    color: white;
+                    border-radius: 10px;
+                }
+                .ai-label { color: #1a73e8; font-weight: bold; }
+                pre { background-color: #2b2b2b; padding: 10px; border-radius: 5px; overflow-x: auto; }
+                code { font-family: monospace; background-color: #2b2b2b; padding: 2px 4px; border-radius: 3px; }
+            """.trimIndent()
+            kit.styleSheet.addRule(css)
+        }
+
+        val scrollPane = JScrollPane(chatDisplay).apply {
+            verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_ALWAYS
+            horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+        }
 
         val inputField = JTextField(40)
         val sendButton = JButton("Send")
         val clearButton = JButton("Clear")
         val loadingLabel = JLabel("Waiting for response...").apply { isVisible = false }
 
-        val htmlBuilder = StringBuilder("<html><body style='font-family:sans-serif;'>")
+        val htmlBuilder = StringBuilder("<html><body>")
 
         val connection = project.messageBus.connect()
         connection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, object : FileEditorManagerListener {
@@ -234,7 +297,7 @@ class MyToolWindowFactory : ToolWindowFactory {
             if (currentProjectContext == null) {
                 currentProjectContext = FileEditorManager.getInstance(project).selectedEditor?.file
             }
-            sendMessage(userMessage, browser, loadingLabel, htmlBuilder)
+            sendMessage(userMessage, chatDisplay, loadingLabel, htmlBuilder)
         }
 
         sendButton.addActionListener { doSend() }
@@ -242,8 +305,8 @@ class MyToolWindowFactory : ToolWindowFactory {
 
         clearButton.addActionListener {
             htmlBuilder.clear()
-            htmlBuilder.append("<html><body style='font-family:sans-serif;'>")
-            browser.loadHTML(htmlBuilder.toString())
+            htmlBuilder.append("<html><body>")
+            chatDisplay.text = htmlBuilder.toString() + "</body></html>"
             assistant.clearContext(12345L)
         }
 
@@ -258,13 +321,18 @@ class MyToolWindowFactory : ToolWindowFactory {
             add(buttonPanel, BorderLayout.EAST)
         }
 
-        panel.add(browserComponent, BorderLayout.CENTER)
+        panel.add(scrollPane, BorderLayout.CENTER)
         panel.add(bottomPanel, BorderLayout.SOUTH)
 
+        println("Copilot: Chat panel created successfully with JEditorPane")
         return panel
     }
 
-    private fun sendMessage(userMessage: String, browser: JBCefBrowser, loadingLabel: JLabel, htmlBuilder: StringBuilder) {
+    private fun getColorHex(color: Color): String {
+        return "#%02x%02x%02x".format(color.red, color.green, color.blue)
+    }
+
+    private fun sendMessage(userMessage: String, chatDisplay: JEditorPane, loadingLabel: JLabel, htmlBuilder: StringBuilder) {
         val chatId = 12345L
 
         loadingLabel.isVisible = true
@@ -272,13 +340,14 @@ class MyToolWindowFactory : ToolWindowFactory {
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 val userHtml = """
-                    <div style="margin-bottom:15px; padding:10px; background-color:#1e1e1e; color:white; border-radius:10px; box-shadow:0 4px 10px rgba(0, 0, 0, 0.3);">
-                        <b style="color:#4CAF50;">You:</b><br>${userMessage.replace("\n", "<br>")}
+                    <div class="user-message">
+                        <span class="user-label">You:</span><br>${userMessage.replace("\n", "<br>")}
                     </div>
                 """.trimIndent()
                 htmlBuilder.append(userHtml)
                 ApplicationManager.getApplication().invokeLater {
-                    browser.loadHTML("$htmlBuilder</body></html>")
+                    chatDisplay.text = "$htmlBuilder</body></html>"
+                    chatDisplay.caretPosition = chatDisplay.document.length
                 }
 
                 val response = if (currentProjectContext != null) {
@@ -289,22 +358,23 @@ class MyToolWindowFactory : ToolWindowFactory {
 
                 val aiHtml = markdownToHtml(response ?: "No response.")
                 val fullHtml = """
-                    <div style="margin-bottom:15px; padding:10px; background-color:#333; color:white; border-radius:10px; box-shadow:0 4px 10px rgba(0, 0, 0, 0.3);">
-                        <b style="color:#1a73e8;">AI:</b><br>$aiHtml
+                    <div class="ai-message">
+                        <span class="ai-label">AI:</span><br>$aiHtml
                     </div>
                 """.trimIndent()
 
                 htmlBuilder.append(fullHtml)
 
                 ApplicationManager.getApplication().invokeLater {
-                    browser.loadHTML("$htmlBuilder</body><script>window.scrollTo(0, document.body.scrollHeight);</script></html>")
+                    chatDisplay.text = "$htmlBuilder</body></html>"
+                    chatDisplay.caretPosition = chatDisplay.document.length
                     loadingLabel.isVisible = false
                 }
             } catch (e: Exception) {
                 val error = "<div style='color:red;'>Error: ${e.message}</div>"
                 htmlBuilder.append(error)
                 ApplicationManager.getApplication().invokeLater {
-                    browser.loadHTML("$htmlBuilder</body></html>")
+                    chatDisplay.text = "$htmlBuilder</body></html>"
                     loadingLabel.isVisible = false
                 }
             }
