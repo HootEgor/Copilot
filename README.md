@@ -17,7 +17,7 @@
 - [ ] Click the <kbd>Watch</kbd> button on the top of the [IntelliJ Platform Plugin Template][template] to be notified about releases containing new features and fixes.
 
 <!-- Plugin description -->
-# 🔧 Copilot
+# Copilot
 
 Copilot is a powerful JetBrains IDE plugin designed to streamline your development workflow. Whether you're working in IntelliJ IDEA, Android Studio, GoLand, or other JetBrains IDEs, this plugin enhances productivity with the following features:
 
